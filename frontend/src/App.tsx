@@ -5,6 +5,8 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import AuthPage from './pages/AuthPage'
 import { AuthProvider, useAuth } from '@/components/Auth/AuthContext'
+import Header from "@/components/common/Header.tsx";
+import Dashboard from "@/pages/Dashboard.tsx";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
     const { token } = useAuth()
@@ -24,10 +26,6 @@ function RootRedirect() {
     return token ? <Navigate to="/dashboard" replace /> : <Navigate to="/auth" replace />
 }
 
-function DashboardPage() {
-    return <div className="p-6 text-center">Welcome to your dashboard!</div>
-}
-
 export default function App() {
     return (
         <AuthProvider>
@@ -39,7 +37,8 @@ export default function App() {
                         path="/dashboard"
                         element={
                             <PrivateRoute>
-                                <DashboardPage />
+                                <Header />
+                                <Dashboard />
                             </PrivateRoute>
                         }
                     />
