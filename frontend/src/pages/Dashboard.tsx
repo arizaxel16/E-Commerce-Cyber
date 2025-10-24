@@ -1,8 +1,8 @@
 // src/pages/Dashboard.tsx
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import ProductCard from "@/components/Dashboard/ProductCard.tsx";
 
 /**
  * Dashboard page
@@ -130,28 +130,5 @@ export default function Dashboard() {
                 </section>
             )}
         </main>
-    );
-}
-
-function ProductCard({ product, formatPrice }: { product: Product; formatPrice: (n: number) => string }) {
-    return (
-        <Card className="flex flex-col overflow-hidden pt-0">
-            <div className="relative h-48 w-full overflow-hidden">
-                <img src={product.image} alt={product.name} className="object-cover w-full h-full" />
-            </div>
-            <CardContent className="flex flex-col gap-3">
-                <div className="flex items-start justify-between">
-                    <h3 className="text-lg font-semibold">{product.name}</h3>
-                    <div className="text-sm font-medium text-green-400">{formatPrice(product.price)}</div>
-                </div>
-                <p className="text-sm text-gray-600 line-clamp-3">{product.description}</p>
-                <div className="mt-2">
-                    {/* Example CTA — keep UI-only for now. */}
-                    <Button size="sm" onClick={() => alert(`Simulated add to cart: ${product.name}`)}>
-                        Add to cart
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
     );
 }

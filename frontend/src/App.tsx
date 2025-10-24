@@ -7,6 +7,7 @@ import AuthPage from './pages/AuthPage'
 import { AuthProvider, useAuth } from '@/components/Auth/AuthContext'
 import Header from "@/components/common/Header.tsx";
 import Dashboard from "@/pages/Dashboard.tsx";
+import {CartProvider} from "@/components/Cart/CartContext.tsx";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
     const { token } = useAuth()
@@ -29,6 +30,7 @@ function RootRedirect() {
 export default function App() {
     return (
         <AuthProvider>
+        <CartProvider>
             <>
                 <Toaster position="top-right" />
                 <Routes>
@@ -46,6 +48,7 @@ export default function App() {
                     <Route path="*" element={<RootRedirect />} />
                 </Routes>
             </>
+        </CartProvider>
         </AuthProvider>
     )
 }
