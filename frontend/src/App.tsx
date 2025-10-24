@@ -9,6 +9,7 @@ import CartPage from "@/pages/CartPage";
 import { AuthProvider, useAuth } from "@/components/Auth/AuthContext";
 import Header from "@/components/common/Header";
 import { CartProvider } from "@/components/Cart/CartContext";
+import ProductPage from "@/pages/ProductPage.tsx";
 
 /**
  * PrivateRoute: keep it simple — expects to be used inside AuthProvider.
@@ -85,6 +86,7 @@ export default function App() {
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/cart" element={<CartPage />} />
                             <Route path="/checkout" element={<CheckoutPlaceholder />} />
+                            <Route path="/product/:id" element={<ProductPage />} />
                         </Route>
 
                         {/* root and fallback */}
