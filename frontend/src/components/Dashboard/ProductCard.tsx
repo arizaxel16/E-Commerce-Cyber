@@ -1,5 +1,6 @@
 // src/components/Product/ProductCard.tsx
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Product } from "@/lib/types";
@@ -13,21 +14,25 @@ export default function ProductCard({
     product: Product;
     formatPrice: (n: number) => string;
 }) {
+    const navigate = useNavigate();
     const { addItem } = useCart();
     const [qty, setQty] = useState<number>(1);
     const [adding, setAdding] = useState(false);
 
-    function dec() {
+    function dec(e?: React.MouseEvent) {
+        e?.stopPropagation();
         setQty((q) => Math.max(1, q - 1));
     }
-    function inc() {
+    function inc(e?: React.MouseEvent) {
+        e?.stopPropagation();
         setQty((q) => q + 1);
     }
 
-    async function handleAddToCart() {
+    async function handleAddToCart(e?: React.MouseEvent) {
+        // prevent the parent card click
+        e?.stopPropagation();
         setAdding(true);
         try {
-            // Simulate small delay if desired for UI feel
             await new Promise((r) => setTimeout(r, 200));
             addItem(product, qty);
             toast.success(`${qty} x ${product.name} added to cart`);
@@ -35,12 +40,25 @@ export default function ProductCard({
             toast.error("Could not add to cart");
         } finally {
             setAdding(false);
-            setQty(1); // optional: reset qty after add
+            setQty(1);
         }
     }
 
+    function handleCardClick() {
+        // navigate to product detail page
+        navigate(`/product/${product.id}`);
+    }
+
     return (
-        <Card className="flex flex-col overflow-hidden pt-0">
+        <Card
+            className="flex flex-col overflow-hidden pt-0 cursor-pointer"
+            onClick={handleCardClick}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+                if (e.key === "Enter") handleCardClick();
+            }}
+        >
             <div className="relative h-48 w-full overflow-hidden">
                 <img src={product.image} alt={product.name} className="object-cover w-full h-full" />
             </div>
@@ -54,7 +72,7 @@ export default function ProductCard({
                 <p className="text-sm text-gray-600 line-clamp-3">{product.description}</p>
 
                 <div className="flex items-center justify-between gap-4 mt-2">
-                    <div className="flex items-center gap-2 border rounded-md p-1">
+                    <div className="flex items-center gap-2 border rounded-md p-1" onClick={(e) => e.stopPropagation()}>
                         <button
                             type="button"
                             aria-label="decrease qty"
@@ -74,7 +92,7 @@ export default function ProductCard({
                         </button>
                     </div>
 
-                    <Button size="sm" onClick={handleAddToCart} disabled={adding}>
+                    <Button size="sm" onClick={handleAddToCart} disabled={adding} onMouseDown={(e) => e.stopPropagation()}>
                         {adding ? "Adding..." : "Add to cart"}
                     </Button>
                 </div>

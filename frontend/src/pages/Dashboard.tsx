@@ -99,7 +99,7 @@ export default function Dashboard() {
         new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(amount);
 
     return (
-        <main className="max-w-7xl mx-auto p-6">
+        <main className="max-w-7xl mx-auto">
             <div className="mb-6">
                 <h2 className="text-2xl font-bold text-white">Dashboard</h2>
                 <p className="text-sm text-gray-500 mt-1">Listado de productos disponibles</p>
