@@ -8,7 +8,20 @@ import { AuthProvider, useAuth } from '@/components/Auth/AuthContext'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
     const { token } = useAuth()
-    return token ? <>{children}</> : <Navigate to="/auth" />
+    // If not authenticated, redirect to auth page
+    return token ? <>{children}</> : <Navigate to="/auth" replace />
+}
+
+// When user visits /auth, if already signed in send them to dashboard
+function AuthRoute() {
+    const { token } = useAuth()
+    return token ? <Navigate to="/dashboard" replace /> : <AuthPage />
+}
+
+// Root redirect: send authenticated users to dashboard, others to auth
+function RootRedirect() {
+    const { token } = useAuth()
+    return token ? <Navigate to="/dashboard" replace /> : <Navigate to="/auth" replace />
 }
 
 function DashboardPage() {
@@ -21,7 +34,7 @@ export default function App() {
             <>
                 <Toaster position="top-right" />
                 <Routes>
-                    <Route path="/auth" element={<AuthPage />} />
+                    <Route path="/auth" element={<AuthRoute />} />
                     <Route
                         path="/dashboard"
                         element={
@@ -30,7 +43,8 @@ export default function App() {
                             </PrivateRoute>
                         }
                     />
-                    <Route path="*" element={<Navigate to="/auth" />} />
+                    <Route path="/" element={<RootRedirect />} />
+                    <Route path="*" element={<RootRedirect />} />
                 </Routes>
             </>
         </AuthProvider>
