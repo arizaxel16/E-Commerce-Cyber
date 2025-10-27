@@ -1,0 +1,22 @@
+# Ruta: /docker-compose.yml
+
+version: '3.8'
+
+services:
+  postgres-db:
+    image: postgres:15
+    container_name: arepabuelas_postgres
+    
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: arepabuelas_db
+      
+    ports:
+      - "5432:5432"
+      
+    volumes:
+      - postgres_arepabuelas_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_arepabuelas_data:
