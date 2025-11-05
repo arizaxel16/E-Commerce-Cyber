@@ -27,6 +27,32 @@ public class AuthService {
     private final JwtUtil jwtUtil;
 
     @Transactional
+    public AuthResponse registerAdmin(RegisterRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new BadRequestException("El email ya está registrado");
+        }
+
+        User user = new User();
+        user.setFullName(request.getFullName());
+        user.setEmail(request.getEmail());
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setRole("ADMIN");
+        user.setStatus("ACTIVE");
+        user.setEmailVerified(true);
+
+        User savedUser = userRepository.save(user);
+
+        return AuthResponse.builder()
+                .userId(savedUser.getId())
+                .email(savedUser.getEmail())
+                .fullName(savedUser.getFullName())
+                .role(savedUser.getRole())
+                .status(savedUser.getStatus())
+                .message("Admin registrado exitosamente")
+                .build();
+    }
+
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BadRequestException("El email ya está registrado");

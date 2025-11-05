@@ -53,17 +53,14 @@ public class OrderService {
             Product product = productRepository.findById(itemRequest.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + itemRequest.getProductId()));
 
-            // Verificar que el producto esté activo
             if (!product.isActive()) {
                 throw new BadRequestException("El producto " + product.getName() + " no está disponible");
             }
 
-            // Verificar stock
             if (product.getStock() < itemRequest.getQuantity()) {
                 throw new BadRequestException("Stock insuficiente para el producto: " + product.getName());
             }
 
-            // Crear item del pedido
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
             orderItem.setProduct(product);
@@ -76,7 +73,7 @@ public class OrderService {
             orderItems.add(orderItem);
             subtotal = subtotal.add(itemTotal);
 
-            // Reducir stock del producto
+            // Reducir stock
             product.setStock(product.getStock() - itemRequest.getQuantity());
             productRepository.save(product);
         }
@@ -89,10 +86,8 @@ public class OrderService {
             Coupon coupon = couponRepository.findByCode(request.getCouponCode())
                     .orElseThrow(() -> new BadRequestException("Cupón inválido"));
 
-            // Validar cupón
             validateCoupon(coupon, user);
 
-            // Aplicar descuento
             BigDecimal discount = calculateDiscount(subtotal, coupon);
             total = subtotal.subtract(discount);
 
@@ -101,17 +96,22 @@ public class OrderService {
             }
 
             order.setCoupon(coupon);
-
-            // Registrar uso del cupón
-            CouponRedemption redemption = new CouponRedemption();
-            redemption.setCoupon(coupon);
-            redemption.setUser(user);
-            redemption.setOrder(order);
-            couponRedemptionRepository.save(redemption);
         }
 
         order.setTotalAmount(total);
         Order savedOrder = orderRepository.save(order);
+
+        // Registrar uso del cupón DESPUÉS de guardar la orden
+        if (request.getCouponCode() != null && !request.getCouponCode().isEmpty()) {
+            Coupon coupon = couponRepository.findByCode(request.getCouponCode())
+                    .orElseThrow(() -> new BadRequestException("Cupón inválido"));
+
+            CouponRedemption redemption = new CouponRedemption();
+            redemption.setCoupon(coupon);
+            redemption.setUser(user);
+            redemption.setOrder(savedOrder);
+            couponRedemptionRepository.save(redemption);
+        }
 
         return convertToDTO(savedOrder);
     }
