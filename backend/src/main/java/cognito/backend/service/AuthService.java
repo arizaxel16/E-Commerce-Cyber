@@ -8,6 +8,7 @@ import cognito.backend.exception.BadRequestException;
 import cognito.backend.exception.ResourceNotFoundException;
 import cognito.backend.model.User;
 import cognito.backend.repository.UserRepository;
+import cognito.backend.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,33 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
+
+    @Transactional
+    public AuthResponse registerAdmin(RegisterRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new BadRequestException("El email ya está registrado");
+        }
+
+        User user = new User();
+        user.setFullName(request.getFullName());
+        user.setEmail(request.getEmail());
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setRole("ADMIN");
+        user.setStatus("ACTIVE");
+        user.setEmailVerified(true);
+
+        User savedUser = userRepository.save(user);
+
+        return AuthResponse.builder()
+                .userId(savedUser.getId())
+                .email(savedUser.getEmail())
+                .fullName(savedUser.getFullName())
+                .role(savedUser.getRole())
+                .status(savedUser.getStatus())
+                .message("Admin registrado exitosamente")
+                .build();
+    }
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -67,7 +95,11 @@ public class AuthService {
             throw new BadRequestException("Tu cuenta ha sido suspendida");
         }
 
-        String token = "simple-token-" + user.getId();
+        String token = jwtUtil.generateToken(
+                user.getEmail(),
+                user.getRole(),
+                user.getId().toString()
+        );
 
         return AuthResponse.builder()
                 .userId(user.getId())

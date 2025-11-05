@@ -1,6 +1,7 @@
 package cognito.backend.controller;
 
 import cognito.backend.dto.CreateProductRequest;
+import org.springframework.security.access.prepost.PreAuthorize;
 import cognito.backend.dto.ProductDTO;
 import cognito.backend.service.ProductService;
 import jakarta.validation.Valid;
@@ -33,10 +34,12 @@ public class ProductController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductDTO> createProduct(@Valid @RequestBody CreateProductRequest request) {
         ProductDTO product = productService.createProduct(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(product);
     }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<ProductDTO> updateProduct(

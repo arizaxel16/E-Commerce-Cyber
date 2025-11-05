@@ -3,20 +3,98 @@
 version: '3.8'
 
 services:
+  # ============================================
+  # BASE DE DATOS POSTGRESQL
+  # ============================================
   postgres-db:
     image: postgres:15
     container_name: arepabuelas_postgres
-    
+
+    # Variables de entorno (usa .env o valores por defecto)
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password123
-      POSTGRES_DB: arepabuelas_db
-      
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password123}
+      POSTGRES_DB: ${POSTGRES_DB:-arepabuelas_db}
+
+    # Puerto (accesible desde tu máquina)
     ports:
       - "5432:5432"
-      
+
+    # Guardar los datos de la BD
     volumes:
       - postgres_arepabuelas_data:/var/lib/postgresql/data
 
+    # Red interna
+    networks:
+      - arepabuelas-network
+
+    # Verificar que PostgreSQL está listo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # BACKEND SPRING BOOT
+  # ============================================
+  backend:
+    # Construir desde el Dockerfile
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    container_name: arepabuelas_backend
+
+    # Esperar a que PostgreSQL esté listo
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+
+    # Variables de entorno para el backend
+    environment:
+      # Conexión a PostgreSQL
+      DB_HOST: postgres-db
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-arepabuelas_db}
+      DB_USERNAME: ${POSTGRES_USER:-admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-password123}
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-default-secret-key-change-in-production-at-least-256-bits}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+
+      # Encriptación
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-1234567890123456}
+
+      # Upload
+      UPLOAD_DIR: /app/uploads
+
+    # Puerto (accesible desde tu máquina)
+    ports:
+      - "8080:8080"
+
+    # Guardar archivos subidos
+    volumes:
+      - backend_uploads:/app/uploads
+
+    # Red interna
+    networks:
+      - arepabuelas-network
+
+    # Reiniciar automáticamente si falla
+    restart: unless-stopped
+
+# ============================================
+# VOLÚMENES (Para guardar datos)
+# ============================================
 volumes:
   postgres_arepabuelas_data:
+  backend_uploads:
+
+# ============================================
+# REDES (Para que los contenedores se comuniquen)
+# ============================================
+networks:
+  arepabuelas-network:
+    driver: bridge

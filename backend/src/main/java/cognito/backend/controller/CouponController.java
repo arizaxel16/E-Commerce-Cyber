@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +22,7 @@ public class CouponController {
     private final CouponService couponService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Coupon> createCoupon(@Valid @RequestBody CreateCouponRequest request) {
         Coupon coupon = couponService.createCoupon(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(coupon);
@@ -39,6 +41,7 @@ public class CouponController {
     }
 
     @DeleteMapping("/{couponId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteCoupon(@PathVariable UUID couponId) {
         couponService.deleteCoupon(couponId);
         return ResponseEntity.noContent().build();
