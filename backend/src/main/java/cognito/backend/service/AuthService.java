@@ -8,6 +8,7 @@ import cognito.backend.exception.BadRequestException;
 import cognito.backend.exception.ResourceNotFoundException;
 import cognito.backend.model.User;
 import cognito.backend.repository.UserRepository;
+import cognito.backend.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -67,7 +69,11 @@ public class AuthService {
             throw new BadRequestException("Tu cuenta ha sido suspendida");
         }
 
-        String token = "simple-token-" + user.getId();
+        String token = jwtUtil.generateToken(
+                user.getEmail(),
+                user.getRole(),
+                user.getId().toString()
+        );
 
         return AuthResponse.builder()
                 .userId(user.getId())
