@@ -87,10 +87,3 @@ class ErrorResponse {
     public String getMessage() { return message; }
     public OffsetDateTime getTimestamp() { return timestamp; }
 }
-@ResponseStatus(HttpStatus.FORBIDDEN)
-public// Esto hace que Spring devuelva un 403
-class ForbiddenException extends RuntimeException {
-    public ForbiddenException(String message) {
-        super(message);
-    }
-}
