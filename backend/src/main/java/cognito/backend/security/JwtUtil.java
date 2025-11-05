@@ -20,17 +20,11 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private Long expiration;
 
-    /**
-     * Genera la clave secreta para firmar el JWT
-     */
     private SecretKey getSigningKey() {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    /**
-     * Genera un token JWT para un usuario
-     */
     public String generateToken(String email, String role, String userId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
@@ -45,30 +39,18 @@ public class JwtUtil {
                 .compact();
     }
 
-    /**
-     * Extrae el email del token
-     */
     public String extractEmail(String token) {
         return extractClaims(token).getSubject();
     }
 
-    /**
-     * Extrae el userId del token
-     */
     public String extractUserId(String token) {
         return extractClaims(token).get("userId", String.class);
     }
 
-    /**
-     * Extrae el rol del token
-     */
     public String extractRole(String token) {
         return extractClaims(token).get("role", String.class);
     }
 
-    /**
-     * Valida si el token es válido
-     */
     public boolean validateToken(String token) {
         try {
             extractClaims(token);
@@ -78,9 +60,6 @@ public class JwtUtil {
         }
     }
 
-    /**
-     * Extrae todos los claims del token
-     */
     private Claims extractClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())

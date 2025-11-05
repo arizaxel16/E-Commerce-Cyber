@@ -17,6 +17,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +31,9 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+
+    @Value("${file.upload-dir:./uploads}")
+    private String uploadDir;
 
     @Transactional
     public AuthResponse registerAdmin(RegisterRequest request) {
@@ -143,6 +152,44 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
         return convertToDTO(user);
+    }
+
+    @Transactional
+    public String uploadUserPhoto(UUID authenticatedUserId, MultipartFile file) {
+
+        try {
+            if (file.isEmpty()) {
+                throw new BadRequestException("El archivo está vacío");
+            }
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                throw new BadRequestException("Solo se permiten imágenes");
+            }
+            if (file.getSize() > 5 * 1024 * 1024) { // 5MB
+                throw new BadRequestException("Máximo 5MB");
+            }
+
+            User user = userRepository.findById(authenticatedUserId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+
+            Path uploadPath = Paths.get(uploadDir);
+            Files.createDirectories(uploadPath);
+
+            String filename = "user-" + authenticatedUserId + ".jpg";
+            Path filePath = uploadPath.resolve(filename);
+            Files.write(filePath, file.getBytes());
+
+            String photoPath = "/uploads/" + filename;
+            user.setPhotoPath(photoPath);
+            userRepository.save(user);
+
+            return photoPath;
+
+        } catch (IOException e) {
+            throw new BadRequestException("Error al guardar el archivo: " + e.getMessage());
+        } catch (Exception e) {
+            throw new BadRequestException("Error al subir foto: " + e.getMessage());
+        }
     }
 
     private UserDTO convertToDTO(User user) {

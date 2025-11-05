@@ -1,42 +1,46 @@
+// Ruta: backend/src/main/java/cognito/backend/controller/PaymentController.java
+
 package cognito.backend.controller;
 
+import cognito.backend.dto.PaymentDTO;
 import cognito.backend.model.Payment;
+import cognito.backend.dto.PaymentRequest;
 import cognito.backend.service.PaymentService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
+import java.security.Principal; // ¡NUEVO!
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/payments")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class PaymentController {
 
     private final PaymentService paymentService;
 
     @PostMapping("/process")
-    public ResponseEntity<Payment> processPayment(@RequestBody PaymentRequest request) {
-        Payment payment = paymentService.processPayment(
+    public ResponseEntity<PaymentDTO> processPayment(
+            @Valid @RequestBody PaymentRequest request) { // <-- ¡ACTUALIZADO!
+
+        PaymentDTO paymentDto = paymentService.processPayment(
                 request.getOrderId(),
                 request.getCardNumber(),
                 request.getCardBrand()
         );
-        return ResponseEntity.ok(payment);
+        return ResponseEntity.ok(paymentDto);
     }
 
     @GetMapping("/order/{orderId}")
-    public ResponseEntity<Payment> getPaymentByOrderId(@PathVariable UUID orderId) {
-        Payment payment = paymentService.getPaymentByOrderId(orderId);
-        return ResponseEntity.ok(payment);
-    }
-}
+    public ResponseEntity<PaymentDTO> getPaymentByOrderId(
+            @PathVariable UUID orderId,
+            Principal principal) {
 
-@Data
-class PaymentRequest {
-    private UUID orderId;
-    private String cardNumber; // Solo tarjetas de prueba: 4000XXXXXXXXXXXX o 5000XXXXXXXXXXXX
-    private String cardBrand;
+        UUID authenticatedUserId = UUID.fromString(principal.getName());
+        PaymentDTO paymentDto = paymentService.getPaymentByOrderId(orderId, authenticatedUserId);
+        return ResponseEntity.ok(paymentDto);
+    }
 }

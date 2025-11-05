@@ -11,6 +11,7 @@ import cognito.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import cognito.backend.exception.ForbiddenException;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -48,7 +49,6 @@ public class OrderService {
         Set<OrderItem> orderItems = new HashSet<>();
         BigDecimal subtotal = BigDecimal.ZERO;
 
-        // Procesar cada item del pedido
         for (OrderItemRequest itemRequest : request.getItems()) {
             Product product = productRepository.findById(itemRequest.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + itemRequest.getProductId()));
@@ -73,7 +73,6 @@ public class OrderService {
             orderItems.add(orderItem);
             subtotal = subtotal.add(itemTotal);
 
-            // Reducir stock
             product.setStock(product.getStock() - itemRequest.getQuantity());
             productRepository.save(product);
         }
@@ -81,7 +80,6 @@ public class OrderService {
         order.setItems(orderItems);
         BigDecimal total = subtotal;
 
-        // Aplicar cupón si existe
         if (request.getCouponCode() != null && !request.getCouponCode().isEmpty()) {
             Coupon coupon = couponRepository.findByCode(request.getCouponCode())
                     .orElseThrow(() -> new BadRequestException("Cupón inválido"));
@@ -101,7 +99,6 @@ public class OrderService {
         order.setTotalAmount(total);
         Order savedOrder = orderRepository.save(order);
 
-        // Registrar uso del cupón DESPUÉS de guardar la orden
         if (request.getCouponCode() != null && !request.getCouponCode().isEmpty()) {
             Coupon coupon = couponRepository.findByCode(request.getCouponCode())
                     .orElseThrow(() -> new BadRequestException("Cupón inválido"));
@@ -128,6 +125,31 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
+    public OrderDTO getOrderByIdAdmin(UUID orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
+        return convertToDTO(order);
+    }
+
+    @Transactional(readOnly = true)
+    public OrderDTO getOrderByIdForUser(UUID orderId, UUID authenticatedUserId) {
+        User requester = userRepository.findById(authenticatedUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario solicitante no encontrado"));
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
+
+        if (!order.getUser().getId().equals(authenticatedUserId)) {
+
+            if (!"ADMIN".equals(requester.getRole())) {
+
+                throw new ForbiddenException("No tienes permiso para ver este pedido.");
+            }
+        }
+        return convertToDTO(order);
+    }
+
+    @Transactional(readOnly = true)
     public OrderDTO getOrderById(UUID orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
@@ -139,7 +161,6 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
 
-        // Validar estados permitidos
         List<String> validStatuses = List.of("PENDING", "PAID", "SHIPPED", "DELIVERED", "CANCELLED");
         if (!validStatuses.contains(newStatus)) {
             throw new BadRequestException("Estado inválido: " + newStatus);
@@ -154,7 +175,6 @@ public class OrderService {
     private void validateCoupon(Coupon coupon, User user) {
         OffsetDateTime now = OffsetDateTime.now();
 
-        // Verificar fechas de validez
         if (coupon.getValidFrom() != null && now.isBefore(coupon.getValidFrom())) {
             throw new BadRequestException("El cupón aún no es válido");
         }
@@ -163,7 +183,6 @@ public class OrderService {
             throw new BadRequestException("El cupón ha expirado");
         }
 
-        // Verificar si es solo para nuevos usuarios
         if (coupon.isNewUserOnly()) {
             List<Order> userOrders = orderRepository.findByUser(user);
             if (!userOrders.isEmpty()) {
@@ -171,7 +190,6 @@ public class OrderService {
             }
         }
 
-        // Verificar máximo de redenciones
         if (coupon.getMaxRedemptions() != null) {
             long redemptionCount = couponRedemptionRepository.count();
             if (redemptionCount >= coupon.getMaxRedemptions()) {

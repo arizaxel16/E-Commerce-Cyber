@@ -26,43 +26,37 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        // 1. Obtener el header Authorization
         String authHeader = request.getHeader("Authorization");
 
-        // 2. Verificar si tiene el formato "Bearer {token}"
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 3. Extraer el token (quitando "Bearer ")
         String token = authHeader.substring(7);
 
         try {
-            // 4. Validar el token
             if (jwtUtil.validateToken(token)) {
+
                 String email = jwtUtil.extractEmail(token);
                 String role = jwtUtil.extractRole(token);
+                String userId = jwtUtil.extractUserId(token);
 
-                // 5. Crear autenticación
+
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
-                                email,
+                                userId,
                                 null,
                                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
                         );
 
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                // 6. Establecer autenticación en el contexto de seguridad
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         } catch (Exception e) {
-            // Token inválido o expirado
             SecurityContextHolder.clearContext();
         }
 
-        // 7. Continuar con el siguiente filtro
         filterChain.doFilter(request, response);
     }
 }

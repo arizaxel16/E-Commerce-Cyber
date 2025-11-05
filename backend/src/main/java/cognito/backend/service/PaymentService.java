@@ -1,11 +1,15 @@
 package cognito.backend.service;
 
+import cognito.backend.dto.PaymentDTO;
 import cognito.backend.exception.BadRequestException;
+import cognito.backend.exception.ForbiddenException;
 import cognito.backend.exception.ResourceNotFoundException;
 import cognito.backend.model.Order;
 import cognito.backend.model.Payment;
+import cognito.backend.model.User;
 import cognito.backend.repository.OrderRepository;
 import cognito.backend.repository.PaymentRepository;
+import cognito.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,17 +24,16 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
+    private final UserRepository userRepository;
 
     @Transactional
-    public Payment processPayment(UUID orderId, String cardNumber, String cardBrand) {
+    public PaymentDTO processPayment(UUID orderId, String cardNumber, String cardBrand) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
 
         if (!"PENDING".equals(order.getStatus())) {
             throw new BadRequestException("El pedido no está pendiente de pago");
         }
-
-        // Validar número de tarjeta simulado (NO USAR TARJETAS REALES)
         if (!cardNumber.startsWith("4000") && !cardNumber.startsWith("5000")) {
             throw new BadRequestException("Use tarjetas de prueba que empiecen con 4000 o 5000");
         }
@@ -42,26 +45,41 @@ public class PaymentService {
         payment.setCardLast4(cardNumber.substring(cardNumber.length() - 4));
         payment.setCardBrand(cardBrand);
 
-        // Simular tokenización (en producción usar Stripe, PayPal, etc.)
         String token = "tok_" + UUID.randomUUID().toString().replace("-", "");
         payment.setCardToken(token);
 
-        // NO almacenar datos completos de tarjeta
-        // En producción, encriptar con AES-256 o usar tokenización externa
         payment.setEncryptedCardData(null);
 
-        // Simular procesamiento
         payment.setPaymentStatus("SUCCESSFUL");
         payment.setProcessedAt(OffsetDateTime.now());
         payment.setNote("Pago simulado procesado exitosamente");
 
         Payment savedPayment = paymentRepository.save(payment);
 
-        // Actualizar estado del pedido
         order.setStatus("PAID");
         orderRepository.save(order);
 
-        return savedPayment;
+        return convertToDTO(savedPayment);
+    }
+
+    @Transactional(readOnly = true)
+    public PaymentDTO getPaymentByOrderId(UUID orderId, UUID authenticatedUserId) {
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado"));
+
+        User requester = userRepository.findById(authenticatedUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario solicitante no encontrado"));
+
+        if (!order.getUser().getId().equals(authenticatedUserId) && !"ADMIN".equals(requester.getRole())) {
+            throw new ForbiddenException("No tienes permiso para ver este pago.");
+        }
+
+        Payment payment = order.getPayments().stream()
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("No se encontró pago para este pedido"));
+
+        return convertToDTO(payment);
     }
 
     @Transactional(readOnly = true)
@@ -72,5 +90,19 @@ public class PaymentService {
         return order.getPayments().stream()
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("No se encontró pago para este pedido"));
+    }
+
+    private PaymentDTO convertToDTO(Payment payment) {
+        return PaymentDTO.builder()
+                .id(payment.getId())
+                .orderId(payment.getOrder().getId())
+                .paymentMethod(payment.getPaymentMethod())
+                .paymentStatus(payment.getPaymentStatus())
+                .amount(payment.getAmount())
+                .processedAt(payment.getProcessedAt())
+                .cardLast4(payment.getCardLast4())
+                .cardBrand(payment.getCardBrand())
+                .note(payment.getNote())
+                .build();
     }
 }

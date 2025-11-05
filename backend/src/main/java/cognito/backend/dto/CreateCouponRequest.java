@@ -17,7 +17,7 @@ public class CreateCouponRequest {
     private String description;
 
     @NotBlank(message = "El tipo de descuento es requerido")
-    private String discountType; // PERCENTAGE o FIXED_AMOUNT
+    private String discountType;
 
     @NotNull(message = "El valor del descuento es requerido")
     @Positive(message = "El valor del descuento debe ser positivo")
