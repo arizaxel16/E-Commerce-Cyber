@@ -3,18 +3,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import ProductCard from "@/components/Dashboard/ProductCard.tsx";
-
-/**
- * Dashboard page
- *
- * Production API call (example) -- keep commented until backend is ready:
- *
- * // import api from '@/lib/api'
- * // const res = await api.get('/products')
- * // // then setProducts(res.data)
- *
- * For now this component uses a local mock that returns demo products.
- */
+import api from "@/lib/api";
 
 type Product = {
     id: string;
@@ -29,8 +18,25 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    function wait(ms = 300) {
-        return new Promise((r) => setTimeout(r, ms));
+    // Defensive price parser because backend may send BigDecimal as string/number
+    function parsePrice(raw: any): number {
+        if (raw === null || raw === undefined) return 0;
+        if (typeof raw === "number") return raw;
+        if (typeof raw === "string") {
+            const n = parseFloat(raw);
+            return Number.isFinite(n) ? n : 0;
+        }
+        // if backend wraps the value in an object
+        if (typeof raw === "object") {
+            // common shapes: { amount: 123.45 } or { value: "123.45" }
+            if ("amount" in raw && typeof raw.amount === "number") return raw.amount;
+            if ("value" in raw) return parseFloat(raw.value as string) || 0;
+            if ("longValue" in raw) return Number(raw.longValue) || 0;
+            // fallback: try converting to number
+            const v = Number(raw);
+            return Number.isFinite(v) ? v : 0;
+        }
+        return 0;
     }
 
     useEffect(() => {
@@ -41,48 +47,30 @@ export default function Dashboard() {
             setError(null);
 
             try {
-                // ---------- Production call (commented) ----------
-                // import api from '@/lib/api'
-                // const res = await api.get('/products');
-                // if (res?.data) setProducts(res.data)
-                // ---------- End production call ----------
+                // production call (backend controller mapped to /api/products)
+                const res = await api.get("/api/products");
+                // Expecting res.data to be ProductDTO[] per backend: List<ProductDTO>
+                const rawList: any[] = res?.data ?? [];
 
-                // ---------- Local mock ----------
-                await wait(400);
-                const demo: Product[] = [
-                    {
-                        id: "p1",
-                        name: "Arepa de Queso",
-                        description: "Arepa tradicional con abundante queso costeño fundido. Crujiente por fuera, suave por dentro.",
-                        price: 2500,
-                        image: "https://picsum.photos/seed/arepa-queso/600/400",
-                    },
-                    {
-                        id: "p2",
-                        name: "Arepa Reina Pepiada",
-                        description: "Arepa rellena de pollo, aguacate y aliños. Sabor cremoso y delicioso.",
-                        price: 4200,
-                        image: "https://picsum.photos/seed/arepa-pollo/600/400",
-                    },
-                    {
-                        id: "p3",
-                        name: "Arepa de Huevo",
-                        description: "Clásica arepa costeña con huevo frito en su interior. Un bocado lleno de nostalgia.",
-                        price: 3000,
-                        image: "https://picsum.photos/seed/arepa-huevo/600/400",
-                    },
-                    {
-                        id: "p4",
-                        name: "Arepa Dulce",
-                        description: "Arepa con un toque de azúcar y canela, acompañamiento perfecto para el café.",
-                        price: 2000,
-                        image: "https://picsum.photos/seed/arepa-dulce/600/400",
-                    },
-                ];
-                if (mounted) setProducts(demo);
-                // ---------- End mock ----------
-            } catch (err) {
-                if (mounted) setError("No se pudieron cargar los productos");
+                const normalized: Product[] = rawList.map((raw) => {
+                    return {
+                        id: raw?.id ? String(raw.id) : raw?.sku ?? Math.random().toString(36).slice(2, 8),
+                        name: raw?.name ?? raw?.sku ?? "Unnamed product",
+                        description: raw?.description ?? "",
+                        price: parsePrice(raw?.price),
+                        image:
+                            (Array.isArray(raw?.imageUrls) && raw.imageUrls.length > 0 && raw.imageUrls[0]) ||
+                            raw?.image ||
+                            // fallback placeholder
+                            `https://picsum.photos/seed/${encodeURIComponent(raw?.name ?? raw?.sku ?? "product")}/600/400`,
+                    };
+                });
+
+                if (mounted) setProducts(normalized);
+            } catch (err: any) {
+                console.error("Failed loading products", err);
+                const msg = err?.response?.data?.message || err?.message || "No se pudieron cargar los productos";
+                if (mounted) setError(msg);
             } finally {
                 if (mounted) setLoading(false);
             }
