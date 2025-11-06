@@ -1,48 +1,45 @@
 // src/pages/AuthPage.tsx
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/components/Auth/AuthContext";
 import { toast } from "sonner";
+// top imports (add useAuth)
+import { useNavigate } from "react-router-dom";
+import api from "@/lib/api";
+import { useAuth } from "@/components/Auth/AuthContext";
 
-/**
- * Example of how the production API call should look (commented):
- *
- * // import api from '@/lib/api'
- * // const res = await api.post('/auth/signin', { email, password });
- *
- * We keep that call commented for future activation. Below we implement a local mock
- * response that matches the same shape your app expects: { ok: boolean, token?: string, message?: string }.
- */
+type AuthResponse = {
+    userId?: string;
+    email?: string;
+    fullName?: string;
+    role?: string;
+    status?: string;
+    token?: string;
+    message?: string;
+};
 
 export default function AuthPage() {
+    const { setToken } = useAuth();
     const [mode, setMode] = useState<"login" | "signup">("login");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirm, setConfirm] = useState("");
     const [loading, setLoading] = useState(false);
-    const { setToken } = useAuth();
     const navigate = useNavigate();
 
     function validateEmail(e: string) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
     }
 
-    function wait(ms = 350) {
-        return new Promise((r) => setTimeout(r, ms));
-    }
-
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-
         if (!validateEmail(email)) {
             toast.error("Please enter a valid email");
             return;
         }
-        if (password.length < 6) {
-            toast.error("Password must be at least 6 characters");
+        if (password.length < 8) {
+            toast.error("Password must be at least 8 characters");
             return;
         }
         if (mode === "signup" && password !== confirm) {
@@ -53,62 +50,53 @@ export default function AuthPage() {
         setLoading(true);
         try {
             if (mode === "login") {
-                // ---------- Production call (commented) ----------
-                // import api from '@/lib/api'
-                // const res = await api.post('/auth/signin', { email, password });
-                // ---------- End production call ----------
+                const res = await api.post<AuthResponse>("/api/auth/login", { email, password });
+                const data = res.data;
+                if (data?.token) {
+                    // Update React context (this will also sync axios/localStorage via AuthContext effects)
+                    setToken(data.token, {
+                        id: data.userId,
+                        email: data.email,
+                        fullName: data.fullName,
+                        role: data.role,
+                    });
+                    // optional: still keep convenience key for header fallback
+                    if (data.email) localStorage.setItem("auth_user_email", data.email);
 
-                // ---------- Local mock / dummy response ----------
-                await wait(400);
-                // Simple mock logic:
-                // - if email includes "invalid" or password !== "password123" => fail
-                // - otherwise succeed and return a mock token
-                let res: { ok: boolean; token?: string; message?: string };
-                if (email.toLowerCase().includes("invalid") || password === "wrong") {
-                    res = { ok: false, message: "Invalid credentials" };
-                } else {
-                    const token = `mock-token-${Math.random().toString(36).slice(2, 10)}`;
-                    res = { ok: true, token };
-                }
-                // ---------- End mock ----------
-
-                if (res.ok && res.token) {
-                    setToken(res.token);
-                    toast.success("Signed in successfully");
+                    // (NO direct setApiToken here is necessary — AuthContext will set api header)
+                    toast.success("Signed in");
                     navigate("/dashboard");
                 } else {
-                    toast.error(res.message || "Invalid credentials");
+                    toast.error(data?.message || "Invalid credentials");
                 }
             } else {
-                // mode === 'signup'
-                // ---------- Production call (commented) ----------
-                // import api from '@/lib/api'
-                // const res = await api.post('/auth/signup', { email, password });
-                // ---------- End production call ----------
-
-                // ---------- Local mock / dummy signup ----------
-                await wait(450);
-                let res: { ok: boolean; message?: string };
-                // If email already contains "used", simulate duplicate
-                if (email.toLowerCase().includes("used")) {
-                    res = { ok: false, message: "Email already registered" };
-                } else {
-                    res = { ok: true };
-                }
-                // ---------- End mock ----------
-
-                if (res.ok) {
-                    toast.success("Account created. You can sign in now");
+                // signup
+                const fullName = email.split("@")[0] || email;
+                const res = await api.post<AuthResponse>("/api/auth/register", { fullName, email, password });
+                const data = res.data;
+                if (data?.token) {
+                    // set token + user same as login
+                    setToken(data.token, {
+                        id: data.userId,
+                        email: data.email,
+                        fullName: data.fullName,
+                        role: data.role,
+                    });
+                    if (data.email) localStorage.setItem("auth_user_email", data.email);
+                    toast.success("Registered and signed in");
+                    navigate("/dashboard");
+                } else if (res.status === 201 || data?.userId) {
+                    toast.success("Account created — please sign in");
                     setMode("login");
                     setPassword("");
                     setConfirm("");
                 } else {
-                    toast.error(res.message || "Unable to create account");
+                    toast.error(data?.message || "Could not create account");
                 }
             }
         } catch (err: any) {
-            // In real usage, handle network errors / call handleApiError
-            toast.error("Network error", err);
+            const msg = err?.response?.data?.message || err?.message || "Network error";
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
@@ -124,6 +112,7 @@ export default function AuthPage() {
                     <h2 className="text-lg sm:text-xl font-medium text-gray-200 mt-2 font-serif italic">by: COGNITO</h2>
                 </div>
             </header>
+
             <Card className="w-full max-w-lg">
                 <CardHeader>
                     <div className="flex gap-2 mb-6 justify-start">
@@ -141,6 +130,7 @@ export default function AuthPage() {
                         </button>
                     </div>
                 </CardHeader>
+
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
@@ -164,20 +154,16 @@ export default function AuthPage() {
                             <Button type="submit" disabled={loading}>
                                 {loading ? (mode === "login" ? "Signing in..." : "Creating...") : mode === "login" ? "Sign in" : "Create account"}
                             </Button>
+
                             <div className="text-sm">
                                 {mode === "login" ? (
-                                    <button type="button" className="underline" onClick={() => setMode("signup")}>
-                                        Need an account?
-                                    </button>
+                                    <button type="button" className="underline" onClick={() => setMode("signup")}>Need an account?</button>
                                 ) : (
-                                    <button type="button" className="underline" onClick={() => setMode("login")}>
-                                        Have an account?
-                                    </button>
+                                    <button type="button" className="underline" onClick={() => setMode("login")}>Have an account?</button>
                                 )}
                             </div>
                         </div>
                     </form>
-
                 </CardContent>
             </Card>
         </div>
