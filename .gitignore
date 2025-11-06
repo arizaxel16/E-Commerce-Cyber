@@ -22,3 +22,27 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# Variables de entorno (NUNCA subir)
+.env
+.env.local
+.env.production
+
+# Build folders
+backend/build/
+backend/.gradle/
+backend/out/
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+
+# Uploads
+uploads/
+backend/uploads/
+
+# Node modules (para frontend después)
+frontend/node_modules/
+frontend/build/
+frontend/dist/
