@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import ProductComment, { type CommentShape } from "@/components/ProductPage/ProductComment";
-import { useAuth } from "@/components/Auth/AuthContext";
+// 7. ¡IMPORT CORREGIDO! Apunta al context correcto
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { useCart } from "@/components/Cart/CartContext";
 import { Minus, Plus } from "lucide-react";

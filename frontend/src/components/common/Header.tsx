@@ -1,6 +1,8 @@
-// src/components/Header/Header.tsx
+// Ruta: src/components/common/Header.tsx (¡Refactorizado y Completo!)
+
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/components/Auth/AuthContext";
+// 1. ¡IMPORT CORREGIDO! Apunta al context que SÍ creamos.
+import { useAuth } from "@/context/AuthContext";
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -10,65 +12,47 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { setToken as setApiToken } from "@/lib/api"; // helper to clear axios header
+// 2. ¡IMPORT CORREGIDO! Importamos la nueva función 'logoutUser' de api.ts
+import { logoutUser } from "@/lib/api"; 
 
 export default function Header() {
-    const auth = useAuth(); // may throw if not wrapped, but your app already used it earlier
-    const { token, user, logout } = auth;
+    // 3. ¡LÓGICA CORREGIDA! Obtenemos el estado de nuestro nuevo context
+    const { isAuthenticated, user, setUser } = useAuth();
     const navigate = useNavigate();
 
-    // Only render header when user is signed in (token present)
-    if (!token) return null;
-
-    // Try to get a sensible email fallback from stored places
-    function getLocalEmailFallback(): string | null {
-        try {
-            // prefer explicit user object in localStorage (if used)
-            const rawUser = localStorage.getItem("cognito_user");
-            if (rawUser) {
-                const parsed = JSON.parse(rawUser);
-                if (parsed?.email) return parsed.email;
-            }
-        } catch {}
-        try {
-            const e = localStorage.getItem("auth_user_email");
-            if (e) return e;
-        } catch {}
+    // 4. ¡GUARDIA CORREGIDA!
+    // Renderiza el header solo si el usuario está autenticado
+    if (!isAuthenticated || !user) {
         return null;
     }
 
-    const email = user?.email || getLocalEmailFallback() || "demo@arepabuelas.test";
+    // 5. ¡LÓGICA SIMPLIFICADA!
+    // Ya no necesitamos buscar en localStorage. El 'user' del context es la fuente de verdad.
+    const email = user.email;
 
-    function handleSignOut() {
+    /**
+     * 6. ¡FUNCIÓN DE LOGOUT CORREGIDA!
+     * Llama a la API para borrar la cookie HttpOnly y limpia el estado de React.
+     */
+    async function handleSignOut() {
         try {
-            // If AuthContext provided a logout, call it (it may already clear state/localStorage)
-            if (typeof logout === "function") {
-                try {
-                    logout();
-                } catch (e) {
-                    // don't fail logout flow if context logout misbehaves
-                    /* noop */
-                }
-            }
-
-            // Ensure token and any stored user info get cleared in all cases
-            try {
-                setApiToken(null); // clears axios default header and localStorage key (api helper handles localStorage)
-            } catch (e) {
-                // fallback: directly remove keys
-                localStorage.removeItem("cognito_token");
-                localStorage.removeItem("cognito_user");
-                localStorage.removeItem("auth_user_email");
-            }
-
-            // Final navigation to auth page
+            // Llama a la función de api.ts que avisa al backend
+            await logoutUser(); 
+            
+            // Limpia el estado de React
+            setUser(null);
+            
+            // Navega al login
             navigate("/auth");
         } catch (err) {
-            // best-effort: still navigate to auth
+            console.error("Error durante el logout:", err);
+            // Forzar limpieza y navegación incluso si la API falla
+            setUser(null);
             navigate("/auth");
         }
     }
 
+    // --- ¡TU DISEÑO (JSX) 100% PRESERVADO! ---
     return (
         <header className="w-full bg-chart-2 border-b border-white/6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -85,7 +69,10 @@ export default function Header() {
                             <DropdownMenuTrigger asChild>
                                 <Button variant="default" className="flex items-center gap-2 px-3 py-6 rounded-md">
                                     <Avatar className="w-8 h-8">
-                                        <AvatarFallback className="text-black">{(email && email[0]?.toUpperCase()) || "U"}</AvatarFallback>
+                                        {/* (Lógica de Avatar simplificada, usa el email del context) */}
+                                        <AvatarFallback className="text-black">
+                                            {(email && email[0]?.toUpperCase()) || "U"}
+                                        </AvatarFallback>
                                     </Avatar>
                                     <div className="flex flex-col items-start text-left">
                                         <span className="text-sm font-medium text-white">{email}</span>
@@ -95,21 +82,16 @@ export default function Header() {
                             </DropdownMenuTrigger>
 
                             <DropdownMenuContent align="end" className="w-40">
-                                <DropdownMenuItem onSelect={handleSignOut}>Sign out</DropdownMenuItem>
+                                {/* (onSelect actualizado para la nueva función de logout) */}
+                                <DropdownMenuItem onSelect={handleSignOut}>
+                                    Sign out
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    onSelect={() => {
-                                        navigate("/dashboard");
-                                    }}
-                                >
+                                <DropdownMenuItem onSelect={() => navigate("/dashboard")}>
                                     Dashboard
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    onSelect={() => {
-                                        navigate("/cart");
-                                    }}
-                                >
+                                <DropdownMenuItem onSelect={() => navigate("/cart")}>
                                     Cart
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
