@@ -89,7 +89,7 @@ export default function Dashboard() {
     return (
         <main className="max-w-7xl mx-auto">
             <div className="mb-6">
-                <h2 className="text-2xl font-bold text-white">Dashboard</h2>
+                <h2 className="text-2xl font-bold text-black">Dashboard</h2>
                 <p className="text-sm text-gray-500 mt-1">Listado de productos disponibles</p>
             </div>
 

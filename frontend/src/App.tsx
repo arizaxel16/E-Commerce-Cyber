@@ -12,6 +12,7 @@ import Header from "@/components/common/Header";
 import { CartProvider } from "@/components/Cart/CartContext";
 import ProductPage from "@/pages/ProductPage.tsx";
 import MyOrders from "@/pages/MyOrders.tsx";
+import AuthorizeNewUsers from "@/pages/AuthorizeNewUsers.tsx";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, isLoading } = useAuth();
@@ -85,6 +86,7 @@ export default function App() {
                             <Route path="/cart" element={<CartPage />} />
                             <Route path="/product/:id" element={<ProductPage />} />
                             <Route path="my-orders" element={<MyOrders />} />
+                            <Route path="/authorize-new-users" element={<AuthorizeNewUsers />} />
                         </Route>
 
                         {/* root and fallback */}
