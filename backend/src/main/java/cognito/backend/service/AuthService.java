@@ -122,6 +122,21 @@ public class AuthService {
     }
 
     @Transactional(readOnly = true)
+    public AuthResponse getUserData(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado (token inválido)"));
+
+        return AuthResponse.builder()
+                .userId(user.getId())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .role(user.getRole())
+                .status(user.getStatus())
+                .message("Sesión validada")
+                .build();
+    }
+
+    @Transactional(readOnly = true)
     public List<UserDTO> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(this::convertToDTO)

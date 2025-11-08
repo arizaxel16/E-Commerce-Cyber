@@ -61,6 +61,14 @@ public class AuthController {
         return ResponseEntity.ok(authResponse);
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<AuthResponse> getAuthenticatedUser(Principal principal) {
+        UUID userId = UUID.fromString(principal.getName());
+
+        AuthResponse authResponse = authService.getUserData(userId);
+        return ResponseEntity.ok(authResponse);
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletResponse response) {
 

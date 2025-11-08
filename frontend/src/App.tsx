@@ -1,33 +1,56 @@
 import React from "react";
+
 import { Routes, Route, Navigate, Outlet, BrowserRouter } from "react-router-dom";
 import { Toaster } from "sonner";
+
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
 import CartPage from "@/pages/CartPage";
+
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import Header from "@/components/common/Header";
 import { CartProvider } from "@/components/Cart/CartContext";
 import ProductPage from "@/pages/ProductPage.tsx";
 
+
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-    const { isAuthenticated } = useAuth(); // <-- CORREGIDO
+    const { isAuthenticated, isLoading } = useAuth();
+
+    if (isLoading) {
+        return <div>Cargando sesión...</div>; 
+    }
+    
     return isAuthenticated ? <>{children}</> : <Navigate to="/auth" replace />;
 }
 
 function AuthRoute() {
-    const { isAuthenticated } = useAuth(); // <-- CORREGIDO
+    const { isAuthenticated, isLoading } = useAuth(); 
+
+    if (isLoading) {
+        return <div>Cargando sesión...</div>; // O un componente <Spinner />
+    }
+
     return isAuthenticated ? <Navigate to="/dashboard" replace /> : <AuthPage />;
 }
 
 function RootRedirect() {
-    const { isAuthenticated } = useAuth(); // <-- CORREGIDO
+    const { isAuthenticated, isLoading } = useAuth();
+
+    if (isLoading) {
+        return <div>Cargando sesión...</div>;
+    }
+
     return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/auth" replace />;
 }
 
+/**
+ * AuthenticatedLayout: (¡Tu JSX 100% Preservado!)
+ */
 function AuthenticatedLayout() {
     return (
         <div className="min-h-screen">
             <Header />
+            {/* main area for nested private pages */}
             <main className="px-6">
                 <Outlet />
             </main>
@@ -35,29 +58,33 @@ function AuthenticatedLayout() {
     );
 }
 
-// ... (CheckoutPlaceholder se queda igual) ...
+/**
+ * CheckoutPlaceholder: (¡Tu JSX 100% Preservado!)
+ */
+function CheckoutPlaceholder() {
+    return (
+        <main className="max-w-4xl mx-auto p-6">
+            <h2 className="text-2xl font-bold text-white mb-2">Checkout (placeholder)</h2>
+            <p className="text-sm text-gray-300 mb-4">Payment module will be implemented later — this is a demo route.</p>
+        </main>
+    );
+}
 
 /**
- * App:
- * (Tu 'App' ya estaba usando AuthProvider, lo cual es correcto,
- * pero 'main.tsx' no debería hacerlo si 'App.tsx' ya lo hace).
- *
- * NOTA: ¡He añadido <BrowserRouter> aquí!
- * Tu 'main.tsx' NO debe tener el AuthProvider si App.tsx lo tiene.
- * Moveremos toda la lógica de 'Providers' aquí para que 'main.tsx'
- * esté limpio.
+ * App: (¡Tu JSX 100% Preservado, con BrowserRouter añadido!)
  */
 export default function App() {
     return (
-        <AuthProvider> {/* <--- El AuthProvider debe estar aquí... */}
+        <AuthProvider>
             <CartProvider>
-                <BrowserRouter> {/* <--- ...y DENTRO de BrowserRouter */}
+                {/* 6. ¡AÑADIDO! BrowserRouter debe envolver tus Routes */}
+                <BrowserRouter> 
                     <Toaster position="top-right" />
                     <Routes>
                         {/* Public / auth */}
                         <Route path="/auth" element={<AuthRoute />} />
 
-                        {/* Private */}
+                        {/* Private: wrap an AuthenticatedLayout inside PrivateRoute */}
                         <Route
                             element={
                                 <PrivateRoute>
@@ -68,7 +95,7 @@ export default function App() {
                             {/* nested private routes */}
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/cart" element={<CartPage />} />
-                            {/* <Route path="/checkout" element={<CheckoutPlaceholder />} /> */}
+                            <Route path="/checkout" element={<CheckoutPlaceholder />} />
                             <Route path="/product/:id" element={<ProductPage />} />
                         </Route>
 
@@ -79,15 +106,5 @@ export default function App() {
                 </BrowserRouter>
             </CartProvider>
         </AuthProvider>
-    );
-}
-
-// ... (CheckoutPlaceholder)
-function CheckoutPlaceholder() {
-    return (
-        <main className="max-w-4xl mx-auto p-6">
-            <h2 className="text-2xl font-bold text-white mb-2">Checkout (placeholder)</h2>
-            <p className="text-sm text-gray-300 mb-4">Payment module will be implemented later — this is a demo route.</p>
-        </main>
     );
 }
