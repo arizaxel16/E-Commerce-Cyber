@@ -67,3 +67,10 @@ docker compose down
 Notes
 	•	Secrets and DB initialization files are not included in this snapshot.
 	•	The environment runs directly from container state as provided.
+
+Admin user APP
+user: admin@arepabuelas.com
+password: SiNosEstasHackeandoEresEnaPerra@!*$
+
+CUPON:
+BIENVENIDO
