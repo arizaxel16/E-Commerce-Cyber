@@ -1,3 +1,5 @@
+Axel Ariza, Juan esteban ocampo, Carlos cruz, Juan Pablo Corral, Andrea Paola Urganeta y Sebastian Gómez
+Grupo Cognito
 Deployment Guide
 
 This guide explains how to run the pre-configured virtual machine and start the application using Docker Compose.
@@ -25,7 +27,7 @@ Example:
 
 The project is located in the home folder.
 
-cd ~/project
+cd ~/opt/arepabuelas/
 
 (This folder contains the docker-compose.yaml file.)
 
