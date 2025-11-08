@@ -12,7 +12,6 @@ import Header from "@/components/common/Header";
 import { CartProvider } from "@/components/Cart/CartContext";
 import ProductPage from "@/pages/ProductPage.tsx";
 
-
 function PrivateRoute({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, isLoading } = useAuth();
 
