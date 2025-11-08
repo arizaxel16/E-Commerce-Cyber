@@ -11,8 +11,6 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import Header from "@/components/common/Header";
 import { CartProvider } from "@/components/Cart/CartContext";
 import ProductPage from "@/pages/ProductPage.tsx";
-import PaymentPage from "@/pages/PaymentPage.tsx";
-
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, isLoading } = useAuth();
@@ -84,7 +82,6 @@ export default function App() {
                             {/* nested private routes */}
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/cart" element={<CartPage />} />
-                            <Route path="/checkout" element={<PaymentPage />} />
                             <Route path="/product/:id" element={<ProductPage />} />
                         </Route>
 
