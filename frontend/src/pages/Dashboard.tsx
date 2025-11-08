@@ -48,7 +48,7 @@ export default function Dashboard() {
 
             try {
                 // production call (backend controller mapped to /api/products)
-                const res = await api.get("/api/products");
+                const res = await api.get("/products");
                 // Expecting res.data to be ProductDTO[] per backend: List<ProductDTO>
                 const rawList: any[] = res?.data ?? [];
 

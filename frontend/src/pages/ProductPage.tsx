@@ -75,7 +75,7 @@ export default function ProductPage() {
             try {
                 if (!productId) throw new Error("No product id provided");
 
-                const res = await api.get(`/api/products/${productId}`);
+                const res = await api.get(`/products/${productId}`);
                 const raw = res?.data;
 
                 const mapped: Product = {
@@ -132,27 +132,6 @@ export default function ProductPage() {
                     const raw = localStorage.getItem(COMMENTS_STORAGE_PREFIX + productId);
                     if (raw) {
                         setComments(JSON.parse(raw) as CommentShape[]);
-                    } else {
-                        const seed: CommentShape[] = [
-                            {
-                                id: `c-${Math.random().toString(36).slice(2, 8)}`,
-                                authorName: "María",
-                                authorEmail: "maria@example.com",
-                                text: "Deliciosa! Recomendada con queso extra.",
-                                rating: 5,
-                                createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-                            },
-                            {
-                                id: `c-${Math.random().toString(36).slice(2, 8)}`,
-                                authorName: "Carlos",
-                                authorEmail: "carlos@example.com",
-                                text: "Me recordó a la arepa de mi abuela. Excelente textura.",
-                                rating: 4,
-                                createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-                            },
-                        ];
-                        setComments(seed);
-                        localStorage.setItem(COMMENTS_STORAGE_PREFIX + productId, JSON.stringify(seed));
                     }
                 } catch (e) {
                     setComments([]);

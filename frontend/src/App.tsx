@@ -11,6 +11,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import Header from "@/components/common/Header";
 import { CartProvider } from "@/components/Cart/CartContext";
 import ProductPage from "@/pages/ProductPage.tsx";
+import PaymentPage from "@/pages/PaymentPage.tsx";
 
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -59,18 +60,6 @@ function AuthenticatedLayout() {
 }
 
 /**
- * CheckoutPlaceholder: (¡Tu JSX 100% Preservado!)
- */
-function CheckoutPlaceholder() {
-    return (
-        <main className="max-w-4xl mx-auto p-6">
-            <h2 className="text-2xl font-bold text-white mb-2">Checkout (placeholder)</h2>
-            <p className="text-sm text-gray-300 mb-4">Payment module will be implemented later — this is a demo route.</p>
-        </main>
-    );
-}
-
-/**
  * App: (¡Tu JSX 100% Preservado, con BrowserRouter añadido!)
  */
 export default function App() {
@@ -95,7 +84,7 @@ export default function App() {
                             {/* nested private routes */}
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/cart" element={<CartPage />} />
-                            <Route path="/checkout" element={<CheckoutPlaceholder />} />
+                            <Route path="/checkout" element={<PaymentPage />} />
                             <Route path="/product/:id" element={<ProductPage />} />
                         </Route>
 
