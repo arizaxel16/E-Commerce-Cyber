@@ -9,8 +9,7 @@ services:
     volumes:
       - postgres_arepabuelas_data:/var/lib/postgresql/data
       - ./db-init:/docker-entrypoint-initdb.d:ro
-    networks:
-      - arepabuelas-network
+    networks: [arepabuelas-network]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U admin -d arepabuelas_db"]
       interval: 10s
@@ -29,13 +28,9 @@ services:
       postgres-db:
         condition: service_healthy
     environment:
-      # --- ¡LÓGICA DE SECRETOS FINAL! ---
-      # Estas variables las lee el entrypoint.sh:
       DB_PASSWORD_FILE: /run/secrets/pg_app_password
       JWT_SECRET_FILE: /run/secrets/jwt_secret
       ENCRYPTION_KEY_FILE: /run/secrets/encryption_key
-
-      # Estas variables las lee Spring Boot:
       DB_HOST: postgres-db
       DB_PORT: 5432
       DB_NAME: ${POSTGRES_DB:-arepabuelas_db}
@@ -43,19 +38,15 @@ services:
       JWT_EXPIRATION: "86400000"
       UPLOAD_DIR: /app/uploads
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DOCKER_COMPOSE_ENABLED: "false" # (Buena idea mantenerlo)
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
     volumes:
       - backend_uploads:/app/uploads
-    networks:
-      - arepabuelas-network
+    networks: [arepabuelas-network]
     restart: unless-stopped
     read_only: true
-    tmpfs:
-      - /tmp
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
     deploy:
       resources:
         limits:
@@ -69,32 +60,21 @@ services:
   frontend:
     image: juancorral/arepabuelas-frontend:latest
     container_name: arepabuelas_frontend
-    depends_on:
-      - backend
-    ports:
-      - "8081:80"
-    networks:
-      - arepabuelas-network
+    depends_on: [backend]
+    ports: ["8081:80"]
+    networks: [arepabuelas-network]
     restart: unless-stopped
     read_only: true
-
-    # --- ¡SOLUCIÓN AÑADIDA AQUÍ! ---
-    # Le damos a Nginx permiso de escritura SOLO en las carpetas
-    # temporales y de caché que necesita para funcionar.
+    # Usa tu nginx.conf COMPLETO (con events{} y http{})
+    volumes:
+      - ./frontend/nginx.conf:/etc/nginx/nginx.conf:ro
     tmpfs:
       - /var/run/
       - /var/cache/nginx
       - /tmp
-    # --- FIN DE LA SOLUCIÓN ---
-
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - SETGID
-      - SETUID
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETGID, SETUID]
 
 volumes:
   postgres_arepabuelas_data:
