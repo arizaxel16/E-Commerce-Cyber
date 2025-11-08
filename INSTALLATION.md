@@ -70,7 +70,7 @@ Notes
 
 Admin user APP
 user: admin@arepabuelas.com
-password: SiNosEstasHackeandoEresEnaPerra@!*$
+password: SiNosEstasHackeandoEresEnaPerra@!*$ (perdon por la clave fue un chiste interno y no nos dio tiempo de cambiarla)
 
 CUPON:
 BIENVENIDO
