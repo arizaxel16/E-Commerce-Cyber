@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
 import { toast } from "sonner";
 
-export default function CreateProduct(): JSX.Element {
+export default function CreateProduct(): React.JSX.Element {
     const navigate = useNavigate();
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");

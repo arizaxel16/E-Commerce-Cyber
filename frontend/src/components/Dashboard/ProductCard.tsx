@@ -114,7 +114,7 @@ export default function ProductCard({
                     <div className="flex items-center gap-2 border rounded-md p-1" onClick={(e) => e.stopPropagation()}>
                         <button
                             type="button"
-                            f aria-label="decrease qty"
+                            aria-label="decrease qty"
                             onClick={dec}
                             className="px-2 py-1 rounded-md hover:bg-white/5"
                         >
@@ -126,7 +126,7 @@ export default function ProductCard({
                             aria-label="increase qty"
                             onClick={inc}
                             className="px-2 py-1 rounded-md hover:bg-white/5"
-                            T               >
+                        >
                             +
                         </button>
                     </div>

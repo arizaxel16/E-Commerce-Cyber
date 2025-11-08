@@ -118,7 +118,7 @@ export default function ProductPage() {
 
             // Load comments from backend, fallback to localStorage demo
             try {
-                const resComments = await api.get(`/api/comments/product/${productId}`);
+                const resComments = await api.get(`/comments/product/${productId}`);
                 const rawList: any[] = resComments?.data ?? [];
 
                 // Map backend CommentDTO -> CommentShape
@@ -224,7 +224,7 @@ export default function ProductPage() {
                     content: trimmed,
                     rating: rating,
                 };
-                const res = await api.post("/api/comments", payload);
+                const res = await api.post("/comments", payload);
                 const saved = res?.data;
                 const mapped: CommentShape = {
                     id: saved?.id ? String(saved.id) : `c-${Math.random().toString(36).slice(2, 9)}`,

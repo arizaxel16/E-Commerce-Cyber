@@ -1,6 +1,6 @@
 // Ruta: frontend/src/context/AuthContext.tsx (¡Refactorizado para persistencia!)
 
-import React, { createContext, useContext, useState, type ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, type ReactNode, useEffect } from 'react';
 // ¡Importamos 'api' para hacer la llamada!
 import api from '@/lib/api'; 
 

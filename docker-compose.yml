@@ -1,74 +1,115 @@
-# Ruta: /docker-compose.yml (En la raíz de 'E-Commerce-Cyber')
-
 services:
-  # ============================================
-  # BASE DE DATOS POSTGRESQL
-  # ============================================
   postgres-db:
-    image: postgres:15
+    image: postgres:15.7
     container_name: arepabuelas_postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password123}
-      POSTGRES_DB: ${POSTGRES_DB:-arepabuelas_db}
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: admin
+      POSTGRES_DB: arepabuelas_db
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_admin_password
     volumes:
       - postgres_arepabuelas_data:/var/lib/postgresql/data
+      - ./db-init:/docker-entrypoint-initdb.d:ro
     networks:
       - arepabuelas-network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-arepabuelas_db}" ]
+      test: ["CMD-SHELL", "pg_isready -U admin -d arepabuelas_db"]
       interval: 10s
       timeout: 5s
       retries: 5
+    secrets:
+      - pg_admin_password
+      - pg_app_password
 
-  # ============================================
-  # BACKEND SPRING BOOT
-  # ============================================
   backend:
     build:
-      context: ./backend # <-- Correcto: Busca el Dockerfile en la carpeta 'backend'
+      context: ./backend
       dockerfile: Dockerfile
     container_name: arepabuelas_backend
     depends_on:
       postgres-db:
-        condition: service_healthy # <-- ¡Excelente! Espera a que la BD esté sana.
+        condition: service_healthy
     environment:
-      # Conexión a PostgreSQL (usa el nombre del servicio 'postgres-db')
+      # --- ¡LÓGICA DE SECRETOS FINAL! ---
+      # Estas variables las lee el entrypoint.sh:
+      DB_PASSWORD_FILE: /run/secrets/pg_app_password
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      ENCRYPTION_KEY_FILE: /run/secrets/encryption_key
+
+      # Estas variables las lee Spring Boot:
       DB_HOST: postgres-db
       DB_PORT: 5432
       DB_NAME: ${POSTGRES_DB:-arepabuelas_db}
-      DB_USERNAME: ${POSTGRES_USER:-admin}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-password123}
-
-      # Secretos de la Aplicación
-      JWT_SECRET: ${JWT_SECRET:-default-secret-key-change-in-production-at-least-256-bits}
-      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
-
-      # ¡CORREGIDO! Usando la clave segura por defecto de tu properties
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-EnIMCBH26XQz3h7PemAUq9BmCJNO0AiSGkFb2vkG+FU=}
-
-      # Directorio de subida DENTRO del contenedor
+      DB_USERNAME: app_user
+      JWT_EXPIRATION: "86400000"
       UPLOAD_DIR: /app/uploads
-    ports:
-      - "8080:8080"
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DOCKER_COMPOSE_ENABLED: "false" # (Buena idea mantenerlo)
     volumes:
-      - backend_uploads:/app/uploads # <-- ¡Excelente! Persiste las imágenes
+      - backend_uploads:/app/uploads
     networks:
       - arepabuelas-network
     restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    secrets:
+      - pg_app_password
+      - jwt_secret
+      - encryption_key
 
-# ============================================
-# VOLÚMENES (Para guardar datos)
-# ============================================
+  frontend:
+    image: juancorral/arepabuelas-frontend:latest
+    container_name: arepabuelas_frontend
+    depends_on:
+      - backend
+    ports:
+      - "8081:80"
+    networks:
+      - arepabuelas-network
+    restart: unless-stopped
+    read_only: true
+
+    # --- ¡SOLUCIÓN AÑADIDA AQUÍ! ---
+    # Le damos a Nginx permiso de escritura SOLO en las carpetas
+    # temporales y de caché que necesita para funcionar.
+    tmpfs:
+      - /var/run/
+      - /var/cache/nginx
+      - /tmp
+    # --- FIN DE LA SOLUCIÓN ---
+
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+
 volumes:
   postgres_arepabuelas_data:
   backend_uploads:
 
-# ============================================
-# REDES (Para que los contenedores se comuniquen)
-# ============================================
 networks:
   arepabuelas-network:
     driver: bridge
+
+secrets:
+  pg_admin_password:
+    file: ./secrets/pg_admin_password.txt
+  pg_app_password:
+    file: ./secrets/pg_app_password.txt
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  encryption_key:
+    file: ./secrets/encryption_key.txt

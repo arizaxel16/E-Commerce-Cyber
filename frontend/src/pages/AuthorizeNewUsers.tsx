@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ type UserDTO = {
     status?: string;
 };
 
-export default function AuthorizeNewUsers(): JSX.Element {
+export default function AuthorizeNewUsers(): React.JSX.Element {
     const [loading, setLoading] = useState(false);
     const [pendingUsers, setPendingUsers] = useState<UserDTO[]>([]);
     const navigate = useNavigate();

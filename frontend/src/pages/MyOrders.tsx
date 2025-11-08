@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React,{ useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
@@ -37,7 +37,7 @@ function formatPrice(amount: string | number) {
     }).format(parseAmount(amount));
 }
 
-export default function MyOrders(): JSX.Element {
+export default function MyOrders(): React.JSX.Element {
     const [orders, setOrders] = useState<OrderDTO[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
