@@ -1,64 +1,22 @@
-// CartPage.tsx
+// Ruta: src/pages/CartPage.tsx (¡COMPLETO Y CORREGIDO!)
+
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/components/Cart/CartContext";
 import { toast } from "sonner";
-import api from "@/lib/api"; // <-- axios instance (baseURL '/api')
+import api from "@/lib/api";
 
-// --- Encryption helpers (demo only) ---
-async function deriveKey(password: string, salt: Uint8Array) {
-    const enc = new TextEncoder();
-    const keyMaterial = await window.crypto.subtle.importKey(
-        "raw",
-        enc.encode(password),
-        { name: "PBKDF2" },
-        false,
-        ["deriveKey"]
-    );
-    return window.crypto.subtle.deriveKey(
-        {
-            name: "PBKDF2",
-            salt,
-            iterations: 100000,
-            hash: "SHA-256",
-        },
-        keyMaterial,
-        { name: "AES-GCM", length: 256 },
-        false,
-        ["encrypt", "decrypt"]
-    );
-}
-
-function bufToB64(buf: ArrayBuffer) {
-    const bytes = new Uint8Array(buf);
-    let binary = "";
-    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-    return window.btoa(binary);
-}
-
-async function encryptCard(cardNumber: string): Promise<string> {
-    // DEMO: hardcoded passphrase and salt. In prod, never embed secrets in client.
-    const passphrase = "demo-passphrase-please-change";
-    const salt = new TextEncoder().encode("demo-salt-2025");
-    const key = await deriveKey(passphrase, salt);
-    const iv = window.crypto.getRandomValues(new Uint8Array(12));
-    const enc = new TextEncoder();
-    const ciphertext = await window.crypto.subtle.encrypt(
-        { name: "AES-GCM", iv },
-        key,
-        enc.encode(cardNumber)
-    );
-
-    // return base64: iv:ciphertext
-    return `${bufToB64(iv.buffer)}:${bufToB64(ciphertext)}`;
-}
+// --- Encryption helpers (¡ELIMINADAS! Eran un anti-patrón de seguridad) ---
+// - deriveKey
+// - bufToB64
+// - encryptCard
 
 // --- Types ---
 type OrderItemRequest = {
     productId: string;
-    qty: number;
+    quantity: number; // ¡CORREGIDO! Renombrado de 'qty' a 'quantity' para coincidir con el DTO del backend
 };
 
 type CreateOrderRequest = {
@@ -73,7 +31,7 @@ type Coupon = {
     code: string;
     description?: string;
     discountType: "PERCENTAGE" | "FIXED_AMOUNT";
-    discountValue: number | string; // backend may return string for BigDecimal
+    discountValue: number | string; 
     newUserOnly?: boolean;
     validFrom?: string;
     validTo?: string;
@@ -124,7 +82,8 @@ export default function CartPage() {
 
         setCheckingCoupon(true);
         try {
-            // GET /api/coupons/{code}
+            // Asumimos que tienes un endpoint 'GET /api/coupons/{code}'
+            // (Esta lógica es tuya y la hemos preservado)
             const res = await api.get(`/coupons/${encodeURIComponent(code)}`);
             const coupon: Coupon = res.data;
             setAppliedCoupon(coupon);
@@ -145,7 +104,11 @@ export default function CartPage() {
         toast.success("Coupon removed");
     }
 
-    // This function creates the order first, then processes the payment
+    /**
+     * ¡LÓGICA CRÍTICA CORREGIDA!
+     * 1. Llama a /api/orders (sin cifrado)
+     * 2. Llama a /api/payments/process (sin cifrado)
+     */
     async function handleCreateOrderAndPay() {
         if (items.length === 0) {
             toast.error("Your cart is empty");
@@ -156,12 +119,14 @@ export default function CartPage() {
         try {
             toast.loading("Creating order...");
 
+            // 1) Crear la orden
             const payload: CreateOrderRequest = {
-                items: items.map((i) => ({ productId: i.product.id, qty: i.qty })),
+                // ¡CORREGIDO! 'quantity' en lugar de 'qty'
+                items: items.map((i) => ({ productId: i.product.id, quantity: i.qty })),
                 couponCode: appliedCoupon ? appliedCoupon.code : undefined,
+                // (Puedes añadir shippingAddress y billingAddress aquí si los recopilas)
             };
 
-            // 1) Create order on backend
             const orderRes = await api.post("/orders", payload);
             const order = orderRes?.data;
             if (!order || !order.id) {
@@ -171,23 +136,26 @@ export default function CartPage() {
             }
             toast.success("Order created");
 
-            // 2) Encrypt card (demo) and send payment
-            toast.loading("Encrypting card and processing payment...");
-            const encrypted = await encryptCard(cardNumber);
+            // 2) ¡LÓGICA DE PAGO CORREGIDA!
+            toast.loading("Processing payment (simulation)...");
 
+            // ¡NO CIFRAMOS! Enviamos los datos de prueba
+            // tal como los espera nuestro PaymentService de backend.
             const paymentPayload = {
                 orderId: order.id,
-                cardNumber: encrypted,
-                cardBrand,
+                cardNumber: cardNumber, // <-- El número de prueba, ej "4242..."
+                cardBrand: cardBrand,
             };
 
             const payRes = await api.post(`/payments/process`, paymentPayload);
             setPaymentResult(payRes.data);
-            toast.success("Payment processed (demo)");
+            toast.success("Payment processed!");
 
-            // Optionally clear cart and redirect to order details
+            // 3) Limpiar y redirigir
             clearCart();
-            navigate(`/orders/${order.id}`);
+            // Redirigimos al dashboard ya que /orders/:id no existe en tu App.tsx
+            navigate(`/dashboard`);
+            
         } catch (err: any) {
             console.error("create+pay error", err);
             const message = err?.response?.data?.message || err?.message || "Something went wrong";
@@ -196,6 +164,8 @@ export default function CartPage() {
             setProcessing(false);
         }
     }
+
+    // --- ¡TU JSX 100% PRESERVADO! ---
 
     if (items.length === 0) {
         return (
