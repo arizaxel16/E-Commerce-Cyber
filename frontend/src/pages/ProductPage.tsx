@@ -10,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { useCart } from "@/components/Cart/CartContext";
 import { Minus, Plus } from "lucide-react";
-import api from "@/lib/api";
+import api, { API_ORIGIN } from "@/lib/api";
 
 function wait(ms = 350) {
     return new Promise((r) => setTimeout(r, ms));
@@ -71,6 +71,7 @@ export default function ProductPage() {
         async function loadProductAndComments() {
             setLoading(true);
             setError(null);
+            const placeholder = (seed: string) => `https://picsum.photos/seed/product-${encodeURIComponent(seed)}/900/600`;
 
             try {
                 if (!productId) throw new Error("No product id provided");
@@ -78,15 +79,22 @@ export default function ProductPage() {
                 const res = await api.get(`/products/${productId}`);
                 const raw = res?.data;
 
+                // --- ¡LÓGICA DE IMAGEN ACTUALIZADA! ---
+                let imageUrl = placeholder(String(raw?.id ?? raw?.sku ?? productId)); // 1. Placeholder
+
+                if (Array.isArray(raw?.imageUrls) && raw.imageUrls.length > 0) {
+                    imageUrl = API_ORIGIN + raw.imageUrls[0]; // 2. URL Real
+                } else if (raw?.image) {
+                    imageUrl = raw.image; // 3. Fallback
+                }
+                // --- FIN DE LA LÓGICA DE IMAGEN ---
+
                 const mapped: Product = {
                     id: raw?.id ? String(raw.id) : productId,
                     name: raw?.name ?? raw?.sku ?? "Unnamed product",
                     description: raw?.description ?? "",
                     price: parsePrice(raw?.price),
-                    image:
-                        (Array.isArray(raw?.imageUrls) && raw.imageUrls.length > 0 && raw.imageUrls[0]) ||
-                        raw?.image ||
-                        `https://picsum.photos/seed/product-${encodeURIComponent(String(raw?.id ?? raw?.sku ?? productId))}/900/600`,
+                    image: imageUrl, // <-- ¡URL Completa!
                     stock: typeof raw?.stock === "number" ? raw.stock : undefined,
                     sku: raw?.sku,
                     totalComments: typeof raw?.totalComments === "number" ? raw.totalComments : undefined,
@@ -272,6 +280,7 @@ export default function ProductPage() {
                 {/* Left: image */}
                 <div className="lg:col-span-2">
                     <Card className="overflow-hidden">
+                        <img src={product.image} alt={product.name} className="object-cover w-full h-[420px]" />
                         <CardContent className="p-6">
                             <h1 className="text-2xl font-bold">{product.name}</h1>
                             <p className="text-sm text-gray-600 mt-2">{product.description}</p>

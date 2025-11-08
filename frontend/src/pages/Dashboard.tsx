@@ -1,15 +1,17 @@
-// src/pages/Dashboard.tsx
+// Ruta: src/pages/Dashboard.tsx (COMPLETO Y ACTUALIZADO)
+
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import ProductCard from "@/components/Dashboard/ProductCard.tsx";
-import api from "@/lib/api";
+// --- ¡IMPORT MODIFICADO! ---
+import api, { API_ORIGIN } from "@/lib/api";
 
 type Product = {
     id: string;
     name: string;
     description: string;
-    price: number; // raw amount in COP
+    price: number;
     image: string;
 };
 
@@ -18,7 +20,7 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Defensive price parser because backend may send BigDecimal as string/number
+    // --- TU LÓGICA (INTACTA) ---
     function parsePrice(raw: any): number {
         if (raw === null || raw === undefined) return 0;
         if (typeof raw === "number") return raw;
@@ -26,13 +28,10 @@ export default function Dashboard() {
             const n = parseFloat(raw);
             return Number.isFinite(n) ? n : 0;
         }
-        // if backend wraps the value in an object
         if (typeof raw === "object") {
-            // common shapes: { amount: 123.45 } or { value: "123.45" }
             if ("amount" in raw && typeof raw.amount === "number") return raw.amount;
             if ("value" in raw) return parseFloat(raw.value as string) || 0;
             if ("longValue" in raw) return Number(raw.longValue) || 0;
-            // fallback: try converting to number
             const v = Number(raw);
             return Number.isFinite(v) ? v : 0;
         }
@@ -45,24 +44,33 @@ export default function Dashboard() {
         async function loadProducts() {
             setLoading(true);
             setError(null);
+            // Tu fallback (intacto)
+            const placeholder = (seed: string) => `https://picsum.photos/seed/${encodeURIComponent(seed)}/600/400`;
 
             try {
-                // production call (backend controller mapped to /api/products)
                 const res = await api.get("/products");
-                // Expecting res.data to be ProductDTO[] per backend: List<ProductDTO>
                 const rawList: any[] = res?.data ?? [];
 
                 const normalized: Product[] = rawList.map((raw) => {
+
+                    // --- ¡LÓGICA DE IMAGEN ACTUALIZADA! ---
+                    let imageUrl = placeholder(raw?.name ?? raw?.sku ?? "product"); // 1. Empezar con placeholder
+
+                    // 2. Comprobar si el backend envió imageUrls
+                    if (Array.isArray(raw?.imageUrls) && raw.imageUrls.length > 0) {
+                        // 3. Construir la URL completa (ej: http://localhost:8080 + /uploads/img.jpg)
+                        imageUrl = API_ORIGIN + raw.imageUrls[0];
+                    } else if (raw?.image) {
+                        imageUrl = raw.image; // 4. Tu fallback original
+                    }
+                    // --- FIN DE LA LÓGICA DE IMAGEN ---
+
                     return {
                         id: raw?.id ? String(raw.id) : raw?.sku ?? Math.random().toString(36).slice(2, 8),
                         name: raw?.name ?? raw?.sku ?? "Unnamed product",
                         description: raw?.description ?? "",
                         price: parsePrice(raw?.price),
-                        image:
-                            (Array.isArray(raw?.imageUrls) && raw.imageUrls.length > 0 && raw.imageUrls[0]) ||
-                            raw?.image ||
-                            // fallback placeholder
-                            `https://picsum.photos/seed/${encodeURIComponent(raw?.name ?? raw?.sku ?? "product")}/600/400`,
+                        image: imageUrl, // <-- ¡Aquí va la URL completa y segura!
                     };
                 });
 
@@ -86,6 +94,7 @@ export default function Dashboard() {
     const formatPrice = (amount: number) =>
         new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(amount);
 
+    // --- TU JSX (INTACTO) ---
     return (
         <main className="max-w-7xl mx-auto">
             <div className="mb-6">
