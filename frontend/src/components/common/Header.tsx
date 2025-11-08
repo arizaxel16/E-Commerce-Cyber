@@ -94,6 +94,10 @@ export default function Header() {
                                 <DropdownMenuItem onSelect={() => navigate("/cart")}>
                                     Cart
                                 </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onSelect={() => navigate("/my-orders")}>
+                                    My Orders
+                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>

@@ -272,7 +272,6 @@ export default function ProductPage() {
                 {/* Left: image */}
                 <div className="lg:col-span-2">
                     <Card className="overflow-hidden">
-                        <img src={product.image} alt={product.name} className="object-cover w-full h-[420px]" />
                         <CardContent className="p-6">
                             <h1 className="text-2xl font-bold">{product.name}</h1>
                             <p className="text-sm text-gray-600 mt-2">{product.description}</p>

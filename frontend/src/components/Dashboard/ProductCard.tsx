@@ -1,4 +1,3 @@
-// src/components/Product/ProductCard.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import type { Product } from "@/lib/types";
 import { useCart } from "@/components/Cart/CartContext";
 import { toast } from "sonner";
+
+const PLACEHOLDER = (seed = "product") => `https://picsum.photos/seed/${encodeURIComponent(seed)}/600/400`;
 
 export default function ProductCard({
                                         product,
@@ -18,6 +19,21 @@ export default function ProductCard({
     const { addItem } = useCart();
     const [qty, setQty] = useState<number>(1);
     const [adding, setAdding] = useState(false);
+    const [imgSrc, setImgSrc] = useState<string>(() => resolveImage(product?.image, product?.name));
+
+    function resolveImage(image: any, seed?: string) {
+        if (!image) return PLACEHOLDER(seed || "product");
+        if (typeof image === "string") return image;
+        if (Array.isArray(image) && image.length > 0) return image[0];
+        if (typeof image === "object") {
+            // common shapes: { url: '...' } or { src: '...' }
+            if (image.url) return image.url;
+            if (image.src) return image.src;
+            // maybe nested arrays
+            if (Array.isArray(image.imageUrls) && image.imageUrls.length > 0) return image.imageUrls[0];
+        }
+        return PLACEHOLDER(seed || "product");
+    }
 
     function dec(e?: React.MouseEvent) {
         e?.stopPropagation();
@@ -34,7 +50,15 @@ export default function ProductCard({
         setAdding(true);
         try {
             await new Promise((r) => setTimeout(r, 200));
-            addItem(product, qty);
+            // Support both addItem signature styles: addItem(product, qty) or addItem({product, qty})
+            try {
+                // @ts-ignore
+                addItem(product, qty);
+            } catch (err) {
+                // fallback
+                // @ts-ignore
+                addItem({ product, qty });
+            }
             toast.success(`${qty} x ${product.name} added to cart`);
         } catch (err) {
             toast.error("Could not add to cart");
@@ -59,9 +83,6 @@ export default function ProductCard({
                 if (e.key === "Enter") handleCardClick();
             }}
         >
-            <div className="relative h-48 w-full overflow-hidden">
-                <img src={product.image} alt={product.name} className="object-cover w-full h-full" />
-            </div>
 
             <CardContent className="flex flex-col gap-3">
                 <div className="flex items-start justify-between">
