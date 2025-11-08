@@ -1,6 +1,4 @@
-# Ruta: /docker-compose.yml
-
-version: '3.8'
+# Ruta: /docker-compose.yml (En la raíz de 'E-Commerce-Cyber')
 
 services:
   # ============================================
@@ -9,28 +7,18 @@ services:
   postgres-db:
     image: postgres:15
     container_name: arepabuelas_postgres
-
-    # Variables de entorno (usa .env o valores por defecto)
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password123}
       POSTGRES_DB: ${POSTGRES_DB:-arepabuelas_db}
-
-    # Puerto (accesible desde tu máquina)
     ports:
       - "5432:5432"
-
-    # Guardar los datos de la BD
     volumes:
       - postgres_arepabuelas_data:/var/lib/postgresql/data
-
-    # Red interna
     networks:
       - arepabuelas-network
-
-    # Verificar que PostgreSQL está listo
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-arepabuelas_db}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,50 +27,36 @@ services:
   # BACKEND SPRING BOOT
   # ============================================
   backend:
-    # Construir desde el Dockerfile
     build:
-      context: ./backend
+      context: ./backend # <-- Correcto: Busca el Dockerfile en la carpeta 'backend'
       dockerfile: Dockerfile
-
     container_name: arepabuelas_backend
-
-    # Esperar a que PostgreSQL esté listo
     depends_on:
       postgres-db:
-        condition: service_healthy
-
-    # Variables de entorno para el backend
+        condition: service_healthy # <-- ¡Excelente! Espera a que la BD esté sana.
     environment:
-      # Conexión a PostgreSQL
+      # Conexión a PostgreSQL (usa el nombre del servicio 'postgres-db')
       DB_HOST: postgres-db
       DB_PORT: 5432
       DB_NAME: ${POSTGRES_DB:-arepabuelas_db}
       DB_USERNAME: ${POSTGRES_USER:-admin}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-password123}
 
-      # JWT
+      # Secretos de la Aplicación
       JWT_SECRET: ${JWT_SECRET:-default-secret-key-change-in-production-at-least-256-bits}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
 
-      # Encriptación
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-1234567890123456}
+      # ¡CORREGIDO! Usando la clave segura por defecto de tu properties
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-EnIMCBH26XQz3h7PemAUq9BmCJNO0AiSGkFb2vkG+FU=}
 
-      # Upload
+      # Directorio de subida DENTRO del contenedor
       UPLOAD_DIR: /app/uploads
-
-    # Puerto (accesible desde tu máquina)
     ports:
       - "8080:8080"
-
-    # Guardar archivos subidos
     volumes:
-      - backend_uploads:/app/uploads
-
-    # Red interna
+      - backend_uploads:/app/uploads # <-- ¡Excelente! Persiste las imágenes
     networks:
       - arepabuelas-network
-
-    # Reiniciar automáticamente si falla
     restart: unless-stopped
 
 # ============================================
